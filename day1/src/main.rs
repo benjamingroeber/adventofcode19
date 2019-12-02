@@ -1,14 +1,14 @@
-use std::io::{stdin, BufRead};
 use std::fmt::Error;
+use std::io::{stdin, BufRead};
 
 /// The answer is the sum of all modules
 fn main() -> Result<(), Box<Error>> {
-    let mut sum= 0;
+    let mut sum = 0;
     let mut full_sum = 0;
     for line in stdin().lock().lines() {
         let mass = line.unwrap().parse().unwrap();
 
-        let module = Module{mass};
+        let module = Module { mass };
 
         sum += module.get_fuel_required();
         full_sum += module.get_full_fuel_required();
@@ -20,12 +20,11 @@ fn main() -> Result<(), Box<Error>> {
     Ok(())
 }
 
-struct Module{
-    mass: u64
+struct Module {
+    mass: u64,
 }
 
 impl Module {
-
     /// this considers only the mass of the module
     fn get_fuel_required(&self) -> u64 {
         fuel_required_for_mass(self.mass)
@@ -86,19 +85,19 @@ mod tests {
 
     #[test]
     fn example_21() {
-        let module = Module{mass:12};
+        let module = Module { mass: 12 };
         assert_eq!(module.get_full_fuel_required(), 2)
     }
 
     #[test]
     fn example_22() {
-        let module = Module{mass:1_969};
+        let module = Module { mass: 1_969 };
         assert_eq!(module.get_full_fuel_required(), 966)
     }
 
     #[test]
     fn example_23() {
-        let module = Module{mass: 100_756};
+        let module = Module { mass: 100_756 };
         assert_eq!(module.get_full_fuel_required(), 50_346)
     }
 }
