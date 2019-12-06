@@ -3,29 +3,37 @@
 //Two adjacent digits are the same (like 22 in 122345).
 //Going from left to right, the digits never decrease; they only ever increase or stay the same (like 111123 or 135679).
 
+// Part 2 requires the number must contain one set of exactly two adjacent identical digits
 type Unit = i32;
 
 fn main() {
     let from: Unit = 264360;
     let to: Unit = 746325;
 
-    let count = (from..to).filter(|n|is_match(*n)).count();
-    println!("{} possible matches", count)
+    let count = (from..to).filter(|n| is_match_first_challenge(*n)).count();
+    println!("Part 1: {} possible matches", count);
+    let count = (from..to).filter(|n| is_match_second_challenge(*n)).count();
+    println!("Part 2: {} possible matches", count);
 }
 
-fn is_match(n: Unit) -> bool {
-    is_six_digit_number(n) && has_adjacent_digits(n) && has_only_increasing_digits(n)
+fn is_match_first_challenge(n: Unit) -> bool {
+    is_six_digit_number(n) && has_only_increasing_digits(n) && has_adjacent_digits(n)
+}
+
+fn is_match_second_challenge(n: Unit) -> bool {
+    is_six_digit_number(n) && has_only_increasing_digits(n) && has_set_of_two_adjacent_digits(n)
 }
 
 fn is_six_digit_number(n: Unit) -> bool {
     n >= 100000 && n < 1000000
 }
 
+/// This does only check for the presence of any adjacent identical digits
 fn has_adjacent_digits(n: Unit) -> bool {
     let (mut last_digit, mut number) = split_last_digit(n);
 
     // Count the number of numbers
-    let steps = 1.0 +  (n as f64).log10();
+    let steps = 1.0 + (n as f64).log10();
 
     for _ in 0..steps as usize {
         let (new_last_digit, new_number) = split_last_digit(number);
@@ -37,7 +45,37 @@ fn has_adjacent_digits(n: Unit) -> bool {
         number = new_number;
     }
 
-    return false
+    return false;
+}
+
+/// This does account for one set of two adjacent identical digits
+fn has_set_of_two_adjacent_digits(n: Unit) -> bool {
+    let (mut last_digit, mut number) = split_last_digit(n);
+
+    // Count the number of numbers
+    let steps = 1.0 + (n as f64).log10();
+
+    let mut repetitions = 0;
+    for _ in 0..steps as usize {
+        let (new_last_digit, new_number) = split_last_digit(number);
+        let is_new_number = last_digit != new_last_digit;
+
+        if is_new_number {
+            // found a set of two identical digits in the middle
+            if repetitions == 1 {
+                return true;
+            }
+            repetitions = 0
+        } else {
+            repetitions += 1
+        }
+
+        last_digit = new_last_digit;
+        number = new_number;
+    }
+
+    // true if last set of numbers is matching criteria
+    return repetitions == 1;
 }
 
 fn split_last_digit(n: Unit) -> (Unit, Unit) {
@@ -48,7 +86,7 @@ fn has_only_increasing_digits(n: Unit) -> bool {
     let (mut last_digit, mut number) = split_last_digit(n);
 
     // Count the number of numbers
-    let steps = 1.0 +  (n as f64).log10();
+    let steps = 1.0 + (n as f64).log10();
     for _ in 0..steps as usize {
         let (new_last_digit, new_number) = split_last_digit(number);
         if last_digit < new_last_digit {
@@ -59,7 +97,7 @@ fn has_only_increasing_digits(n: Unit) -> bool {
         number = new_number;
     }
 
-    return true
+    return true;
 }
 
 #[cfg(test)]
@@ -90,5 +128,17 @@ mod tests {
         assert!(has_only_increasing_digits(1233));
         assert!(has_only_increasing_digits(111));
         assert!(has_only_increasing_digits(1));
+    }
+
+    #[test]
+    fn test_has_set_of_two_adjacent_digits() {
+        assert!(has_set_of_two_adjacent_digits(112233));
+        assert!(!has_set_of_two_adjacent_digits(123444));
+        assert!(has_set_of_two_adjacent_digits(111122));
+        assert!(has_set_of_two_adjacent_digits(110022));
+        assert!(has_set_of_two_adjacent_digits(1110022));
+        assert!(!has_set_of_two_adjacent_digits(111));
+        assert!(has_set_of_two_adjacent_digits(11));
+        assert!(!has_set_of_two_adjacent_digits(1));
     }
 }
