@@ -1,10 +1,5 @@
-//add two new instructions:
-//
-//Opcode 3 takes a single integer as input and saves it to the position given by its only parameter. For example, the instruction 3,50 would take an input value and store it at address 50.
-//Opcode 4 outputs the value of its only parameter. For example, the instruction 4,50 would output the value at address 50.
-
 fn main() {
-    let input: Vec<Value> = vec![
+    let data: Vec<Value> = vec![
         3, 225, 1, 225, 6, 6, 1100, 1, 238, 225, 104, 0, 1002, 114, 46, 224, 1001, 224, -736, 224,
         4, 224, 1002, 223, 8, 223, 1001, 224, 3, 224, 1, 223, 224, 223, 1, 166, 195, 224, 1001,
         224, -137, 224, 4, 224, 102, 8, 223, 223, 101, 5, 224, 224, 1, 223, 224, 223, 1001, 169,
@@ -43,17 +38,25 @@ fn main() {
         226, 224, 1002, 223, 2, 223, 1006, 224, 674, 1001, 223, 1, 223, 4, 223, 99, 226,
     ];
 
-    let mut program = Program::new(input);
+    let mut part1 = Program::new(data);
+    let mut part2 = part1.clone();
+    println!("Part1:");
+    part1.set_input(1);
+    part1.run();
 
-    program.run();
+    println!("Part2:");
+    part2.set_input(5);
+    part2.run();
 }
 
 type Value = i32;
 type Addr = usize;
 
+#[derive(Debug,Clone)]
 struct Program {
     data: Vec<Value>,
     instruction_ptr: Addr,
+    input: Option<Value>,
 }
 
 impl Program {
@@ -61,7 +64,11 @@ impl Program {
         Program {
             data,
             instruction_ptr: 0,
+            input: None
         }
+    }
+    fn set_input(&mut self, value: Value){
+        self.input = Some(value);
     }
     fn current_instruction(&self) -> Instruction {
         let instruction = self.data[self.instruction_ptr];
@@ -86,17 +93,55 @@ impl Program {
                 Some(4)
             }
             OpCode::Input => {
-                // TODO Get actual input
-                let input = 1;
                 let target_addr = self.address_at(self.instruction_ptr + 1);
 
-                self.set(target_addr, input);
+                self.set(target_addr, self.input.expect("Input required, but not set!"));
                 Some(2)
             }
             OpCode::Output => {
                 let value = self.value_at(self.instruction_ptr + 1);
                 println!("Output: {}", value);
                 Some(2)
+            }
+            OpCode::JumpIfTrue => {
+                if self.param(1, instruction.parameter_modes[0]) != 0 {
+                    let value = self.param(2, instruction.parameter_modes[1]);
+
+                    // FIXME this can panic
+                    self.instruction_ptr = value as usize;
+                    // Don't advance if instruction_ptr was set
+                    return Some(0)
+                }
+                return Some(3)
+            }
+            OpCode::JumpIfFalse => {
+                if self.param(1, instruction.parameter_modes[0]) == 0 {
+                    let value = self.param(2, instruction.parameter_modes[1]);
+
+                    // FIXME this can panic
+                    self.instruction_ptr = value as usize;
+                    // Don't advance if instruction_ptr was set
+                    return Some(0)
+                }
+                return Some(3)
+            }
+            OpCode::LessThan => {
+                let target_addr = self.address_at(self.instruction_ptr + 3);
+                if self.param(1, instruction.parameter_modes[0]) < self.param(2, instruction.parameter_modes[1]) {
+                    self.set(target_addr, 1)
+                } else {
+                    self.set(target_addr, 0)
+                }
+                Some(4)
+            }
+            OpCode::Equals => {
+                let target_addr = self.address_at(self.instruction_ptr + 3);
+                if self.param(1, instruction.parameter_modes[0]) == self.param(2, instruction.parameter_modes[1]) {
+                    self.set(target_addr, 1)
+                } else {
+                    self.set(target_addr, 0)
+                }
+                Some(4)
             }
         }
     }
@@ -133,6 +178,10 @@ enum OpCode {
     Mul,
     Input,
     Output,
+    JumpIfTrue,
+    JumpIfFalse,
+    LessThan,
+    Equals
 }
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
@@ -182,6 +231,10 @@ fn opcode_from_value(value: Value) -> OpCode {
         2 => OpCode::Mul,
         3 => OpCode::Input,
         4 => OpCode::Output,
+        5 => OpCode::JumpIfTrue,
+        6 => OpCode::JumpIfFalse,
+        7 => OpCode::LessThan,
+        8 => OpCode::Equals,
         99 => OpCode::Halt,
         _ => panic!("Oops, unrecognized opcode: {}", value),
     }
@@ -192,6 +245,65 @@ mod tests {
     use super::*;
     use crate::ParameterMode::{Immediate, Position};
 
+    #[test]
+    fn test_equals_instruction() {
+        let mut position_program_eq_8 = Program::new(vec![3, 9, 8, 9, 10, 9, 4, 9, 99, -1, 8]);
+        let mut position_program_ne_8 = position_program_eq_8.clone();
+        position_program_eq_8.set_input(8);
+        position_program_ne_8.set_input(1);
+
+        let mut immediate_program_eq_8 = Program::new(vec![3,3,1108,-1,8,3,4,3,99]);
+        let mut immediate_program_ne_8 = immediate_program_eq_8.clone();
+        immediate_program_eq_8.set_input(8);
+        immediate_program_ne_8.set_input(1);
+
+
+        position_program_eq_8.run();
+        position_program_ne_8.run();
+        immediate_program_eq_8.run();
+        immediate_program_ne_8.run();
+
+        assert_eq!(position_program_eq_8.data[9], 1);
+        assert_eq!(position_program_ne_8.data[9], 0);
+        assert_eq!(immediate_program_eq_8.data[3], 1);
+        assert_eq!(immediate_program_ne_8.data[3], 0);
+    }
+
+    #[test]
+    fn test_jump_instruction() {
+        let mut position_program_zero = Program::new(vec![3, 12, 6, 12, 15, 1, 13, 14, 13, 4, 13, 99, -1, 0, 1, 9]);
+        let mut position_program_nonzero = position_program_zero.clone();
+        position_program_zero.set_input(0);
+        position_program_nonzero.set_input(8);
+
+        let mut immediate_program_zero = Program::new(vec![3, 3, 1105, -1, 9, 1101, 0, 0, 12, 4, 12, 99, 1]);
+        let mut immediate_program_nonzero = immediate_program_zero.clone();
+        immediate_program_zero.set_input(0);
+        immediate_program_nonzero.set_input(8);
+
+
+        position_program_zero.run();
+        println!("{:?}", position_program_zero.data);
+        position_program_nonzero.run();
+        println!("{:?}", position_program_nonzero.data);
+        immediate_program_zero.run();
+        println!("{:?}", immediate_program_zero.data);
+        immediate_program_nonzero.run();
+        println!("{:?}", immediate_program_nonzero.data);
+
+        assert_eq!(position_program_zero.data[13], 0);
+        assert_eq!(position_program_nonzero.data[13], 1);
+        assert_eq!(immediate_program_zero.data[12], 0);
+        assert_eq!(immediate_program_nonzero.data[12], 1);
+    }
+    
+    #[test]
+    fn test_lt_instruction() {
+        let position_program = Program::new(vec![3,9,8,9,10,9,4,9,99,-1,8]);
+        let immediate_program = Program::new(vec![3,3,1108,-1,8,3,4,3,99]);
+
+    }
+    
     #[test]
     fn test_simple_programs() {
 
@@ -236,18 +348,30 @@ mod tests {
         let m = 2;
         let i = 3;
         let o = 4;
+        let jit = 5;
+        let jif = 6;
+        let lt = 7;
+        let eq = 8;
 
         let oh = opcode_from_value(h);
         let oa = opcode_from_value(a);
         let om = opcode_from_value(m);
         let oi = opcode_from_value(i);
         let oo = opcode_from_value(o);
+        let ojit = opcode_from_value(jit);
+        let ojif = opcode_from_value(jif);
+        let olt = opcode_from_value(lt);
+        let oeq = opcode_from_value(eq);
 
         assert_eq!(oh, OpCode::Halt);
         assert_eq!(oa, OpCode::Add);
         assert_eq!(om, OpCode::Mul);
         assert_eq!(oi, OpCode::Input);
         assert_eq!(oo, OpCode::Output);
+        assert_eq!(ojit, OpCode::JumpIfTrue);
+        assert_eq!(ojif, OpCode::JumpIfFalse);
+        assert_eq!(olt, OpCode::LessThan);
+        assert_eq!(oeq, OpCode::Equals);
     }
 
     // Old tests from day 2
