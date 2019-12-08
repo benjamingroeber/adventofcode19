@@ -52,7 +52,7 @@ fn main() {
 type Value = i32;
 type Addr = usize;
 
-#[derive(Debug,Clone)]
+#[derive(Debug, Clone)]
 struct Program {
     data: Vec<Value>,
     instruction_ptr: Addr,
@@ -64,10 +64,10 @@ impl Program {
         Program {
             data,
             instruction_ptr: 0,
-            input: None
+            input: None,
         }
     }
-    fn set_input(&mut self, value: Value){
+    fn set_input(&mut self, value: Value) {
         self.input = Some(value);
     }
     fn current_instruction(&self) -> Instruction {
@@ -95,7 +95,10 @@ impl Program {
             OpCode::Input => {
                 let target_addr = self.address_at(self.instruction_ptr + 1);
 
-                self.set(target_addr, self.input.expect("Input required, but not set!"));
+                self.set(
+                    target_addr,
+                    self.input.expect("Input required, but not set!"),
+                );
                 Some(2)
             }
             OpCode::Output => {
@@ -110,9 +113,9 @@ impl Program {
                     // FIXME this can panic
                     self.instruction_ptr = value as usize;
                     // Don't advance if instruction_ptr was set
-                    return Some(0)
+                    return Some(0);
                 }
-                return Some(3)
+                return Some(3);
             }
             OpCode::JumpIfFalse => {
                 if self.param(1, instruction.parameter_modes[0]) == 0 {
@@ -121,13 +124,15 @@ impl Program {
                     // FIXME this can panic
                     self.instruction_ptr = value as usize;
                     // Don't advance if instruction_ptr was set
-                    return Some(0)
+                    return Some(0);
                 }
-                return Some(3)
+                return Some(3);
             }
             OpCode::LessThan => {
                 let target_addr = self.address_at(self.instruction_ptr + 3);
-                if self.param(1, instruction.parameter_modes[0]) < self.param(2, instruction.parameter_modes[1]) {
+                if self.param(1, instruction.parameter_modes[0])
+                    < self.param(2, instruction.parameter_modes[1])
+                {
                     self.set(target_addr, 1)
                 } else {
                     self.set(target_addr, 0)
@@ -136,7 +141,9 @@ impl Program {
             }
             OpCode::Equals => {
                 let target_addr = self.address_at(self.instruction_ptr + 3);
-                if self.param(1, instruction.parameter_modes[0]) == self.param(2, instruction.parameter_modes[1]) {
+                if self.param(1, instruction.parameter_modes[0])
+                    == self.param(2, instruction.parameter_modes[1])
+                {
                     self.set(target_addr, 1)
                 } else {
                     self.set(target_addr, 0)
@@ -181,7 +188,7 @@ enum OpCode {
     JumpIfTrue,
     JumpIfFalse,
     LessThan,
-    Equals
+    Equals,
 }
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
@@ -252,11 +259,10 @@ mod tests {
         position_program_eq_8.set_input(8);
         position_program_ne_8.set_input(1);
 
-        let mut immediate_program_eq_8 = Program::new(vec![3,3,1108,-1,8,3,4,3,99]);
+        let mut immediate_program_eq_8 = Program::new(vec![3, 3, 1108, -1, 8, 3, 4, 3, 99]);
         let mut immediate_program_ne_8 = immediate_program_eq_8.clone();
         immediate_program_eq_8.set_input(8);
         immediate_program_ne_8.set_input(1);
-
 
         position_program_eq_8.run();
         position_program_ne_8.run();
@@ -271,16 +277,18 @@ mod tests {
 
     #[test]
     fn test_jump_instruction() {
-        let mut position_program_zero = Program::new(vec![3, 12, 6, 12, 15, 1, 13, 14, 13, 4, 13, 99, -1, 0, 1, 9]);
+        let mut position_program_zero = Program::new(vec![
+            3, 12, 6, 12, 15, 1, 13, 14, 13, 4, 13, 99, -1, 0, 1, 9,
+        ]);
         let mut position_program_nonzero = position_program_zero.clone();
         position_program_zero.set_input(0);
         position_program_nonzero.set_input(8);
 
-        let mut immediate_program_zero = Program::new(vec![3, 3, 1105, -1, 9, 1101, 0, 0, 12, 4, 12, 99, 1]);
+        let mut immediate_program_zero =
+            Program::new(vec![3, 3, 1105, -1, 9, 1101, 0, 0, 12, 4, 12, 99, 1]);
         let mut immediate_program_nonzero = immediate_program_zero.clone();
         immediate_program_zero.set_input(0);
         immediate_program_nonzero.set_input(8);
-
 
         position_program_zero.run();
         println!("{:?}", position_program_zero.data);
@@ -296,17 +304,15 @@ mod tests {
         assert_eq!(immediate_program_zero.data[12], 0);
         assert_eq!(immediate_program_nonzero.data[12], 1);
     }
-    
+
     #[test]
     fn test_lt_instruction() {
-        let position_program = Program::new(vec![3,9,8,9,10,9,4,9,99,-1,8]);
-        let immediate_program = Program::new(vec![3,3,1108,-1,8,3,4,3,99]);
-
+        let position_program = Program::new(vec![3, 9, 8, 9, 10, 9, 4, 9, 99, -1, 8]);
+        let immediate_program = Program::new(vec![3, 3, 1108, -1, 8, 3, 4, 3, 99]);
     }
-    
+
     #[test]
     fn test_simple_programs() {
-
         let mut neg_program = Program::new(vec![1101, 100, -1, 4, 0]);
         let mut mul_program = Program::new(vec![1002, 4, 3, 4, 33]);
 
