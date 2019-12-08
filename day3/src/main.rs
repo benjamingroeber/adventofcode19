@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 // TODO read from STDIN
 // No time today, there's some bug in the intersection code
 static INPUT: & str = "R991,U847,L239,U883,L224,D359,L907,D944,L79,U265,L107,D183,R850,U203,R828,D95,L258,D931,R792,U117,L309,U182,L633,D567,L828,D454,L660,U652,L887,D341,L497,D857,L299,U191,L882,D476,L968,U913,R453,D776,R169,D1,L193,D187,L564,U306,R815,U9,L434,U879,L816,D142,R16,U663,L54,D347,L557,U828,R597,D328,L636,U200,L383,D256,R162,U159,R37,D748,R440,D260,R48,D755,R762,U73,L357,U132,L745,D426,L797,U744,R945,D788,R585,U948,L20,D983,L335,U709,R488,U715,R229,D672,L13,D930,R903,D71,R620,U146,L835,U936,R542,D311,R375,U91,R362,U613,L78,D451,R220,D493,R404,D516,L550,U647,L908,U254,R827,D180,R902,U972,R56,U761,R912,U356,L921,D461,L65,D651,L230,U534,R143,D614,L526,D100,R76,D135,L572,U971,L219,D793,R638,U676,L58,D882,R299,D922,L198,D872,R736,D433,L999,U157,R795,U344,R213,D205,L928,D319,L775,U288,L903,U735,R128,D835,R496,U992,L875,D823,L833,D635,L700,U586,L587,U753,R849,U433,R473,U369,R891,U10,L152,U26,L893,U752,L258,D384,L491,U314,R722,U783,R801,U551,R141,U870,L662,D572,R671,U285,L435,D83,L260,U371,R849,U741,R661,U774,L583,U947,L460,U677,R809,D130,L288,D58,R107,U597,R21,U17,R99,U202,L324,U493,R824,U207,L460,D734,L154,D689,L366,D879,L353,U548,L307,D691,R70,U470,R649,D948,L346,U16,L257,D800,R954,D165,R376,D312,R491,D175,R426,U920,L532,U2,L556,D553,R320,D861,L129,D42,R112,U101,R455,D930,R122,D443,R28,D72,L670,U133,L599,D813,R169,D827,R235,D644,L297,U261,R405,D887,R218,D647,R108,D928,L779,D961,L110,U690,L214,U342,R449,D737,L651,U940,L370,D882,R10,D605,R369,U408,R167,D542,L819
@@ -6,30 +8,93 @@ L994,U274,R468,D607,R236,D712,R825,D228,L812,U796,R806,D874,L742,D297,L269,D853,
 fn main() {
     let mut lines = INPUT.lines();
     let first_line = lines.next().unwrap();
-    let first_directions: Vec<_> = first_line.split(",").map(direction_from_str).collect();
-    let first_lines = lines_from_directions(&first_directions);
+    let first_directions: Vec<Direction> = first_line.split(",").map(direction_from_str).collect();
 
     let second_line = lines.next().unwrap();
     let second_directions: Vec<_> = first_line.split(",").map(direction_from_str).collect();
     let second_lines = lines_from_directions(&second_directions);
 
-    let intersections = compute_intersections(&first_lines, &second_lines);
-    println!("{:?}", intersections);
-    let mut closest = intersections[0];
-    for intersection in intersections {
-        if intersection.distance() < closest.distance() {
-            closest = intersection;
+    let first_visited_points = visited_points_from_directions(&first_directions);
+    let second_visited_points = visited_points_from_directions(&second_directions);
+
+    let mut intersections: Vec<_> = first_visited_points
+        .iter()
+        .filter_map(|(point, steps)| {
+            if let Some(second_steps) = second_visited_points.get(point) {
+                Some((point, steps + second_steps))
+            } else {
+                None
+            }
+        })
+        .collect();
+
+    let mut shortest_distance = intersections[0];
+    for &i in &intersections {
+        let distance = i.0.distance();
+        if distance < shortest_distance.0.distance() {
+            shortest_distance = i
         }
     }
-    println!("Closest: {:?}({})", closest, closest.distance())
+    println!("{:?}", intersections)
+}
+
+fn visited_points_from_directions(directions: &[Direction]) -> HashMap<Point, i32> {
+    let mut position = Point { x: 0, y: 0 };
+    let mut visited_points = HashMap::new();
+    let mut i = 0;
+    for &direction in directions {
+        match direction {
+            Direction::Right(offset) => {
+                for _ in 0..offset {
+                    i += 1;
+                    position = Point {
+                        x: position.x + 1,
+                        y: position.y,
+                    };
+                    visited_points.insert(position, i);
+                }
+            }
+            Direction::Up(offset) => {
+                for _ in 0..offset {
+                    i += 1;
+                    position = Point {
+                        x: position.x,
+                        y: position.y + 1,
+                    };
+                    visited_points.insert(position, i);
+                }
+            }
+            Direction::Left(offset) => {
+                for _ in 0..offset {
+                    i += 1;
+                    position = Point {
+                        x: position.x - 1,
+                        y: position.y,
+                    };
+                    visited_points.insert(position, i);
+                }
+            }
+            Direction::Down(offset) => {
+                for _ in 0..offset {
+                    i += 1;
+                    position = Point {
+                        x: position.x,
+                        y: position.y - 1,
+                    };
+                    visited_points.insert(position, i);
+                }
+            }
+        }
+    }
+    visited_points
 }
 
 type Unit = i64;
 
-#[derive(Debug, Copy, Clone, Eq, PartialEq)]
-struct Point{
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Hash)]
+struct Point {
     x: Unit,
-    y: Unit
+    y: Unit,
 }
 
 impl Point {
@@ -40,16 +105,16 @@ impl Point {
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
 enum Line {
-    Horizontal{ left: Point, right: Point},
-    Vertical{bottom: Point, top: Point}
+    Horizontal { left: Point, right: Point },
+    Vertical { bottom: Point, top: Point },
 }
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
-enum Direction{
+enum Direction {
     Right(Unit),
     Up(Unit),
     Left(Unit),
-    Down(Unit)
+    Down(Unit),
 }
 
 fn direction_from_str(s: &str) -> Direction {
@@ -60,34 +125,70 @@ fn direction_from_str(s: &str) -> Direction {
         "U" => Direction::Up(steps),
         "L" => Direction::Left(steps),
         "D" => Direction::Down(steps),
-        _ => panic!("Oops, that's not a valid direction: {}", direction)
+        _ => panic!("Oops, that's not a valid direction: {}", direction),
     }
 }
 
 fn lines_from_directions(directions: &[Direction]) -> Vec<Line> {
     let mut lines = Vec::new();
-    let mut origin = Point{ x: 0, y: 0 };
+    let mut origin = Point { x: 0, y: 0 };
     for &direction in directions {
         let (line, new_origin) = match direction {
             Direction::Right(offset) => {
-                let destination = Point{x: origin.x + offset, y: origin.y};
-                (Line::Horizontal{left: origin, right: destination}, destination)
-            },
+                let destination = Point {
+                    x: origin.x + offset,
+                    y: origin.y,
+                };
+                (
+                    Line::Horizontal {
+                        left: origin,
+                        right: destination,
+                    },
+                    destination,
+                )
+            }
             Direction::Left(offset) => {
-                let destination = Point{x: origin.x - offset, y: origin.y};
-                (Line::Horizontal{left: destination, right: origin}, destination)
-            },
+                let destination = Point {
+                    x: origin.x - offset,
+                    y: origin.y,
+                };
+                (
+                    Line::Horizontal {
+                        left: destination,
+                        right: origin,
+                    },
+                    destination,
+                )
+            }
             Direction::Up(offset) => {
-                let destination = Point{x: origin.x, y: origin.y + offset};
-                (Line::Vertical{bottom: origin, top: destination}, destination)
-            },
+                let destination = Point {
+                    x: origin.x,
+                    y: origin.y + offset,
+                };
+                (
+                    Line::Vertical {
+                        bottom: origin,
+                        top: destination,
+                    },
+                    destination,
+                )
+            }
             Direction::Down(offset) => {
-                let destination = Point{x: origin.x, y: origin.y - offset};
-                (Line::Vertical{bottom: destination, top: origin}, destination)
-            },
+                let destination = Point {
+                    x: origin.x,
+                    y: origin.y - offset,
+                };
+                (
+                    Line::Vertical {
+                        bottom: destination,
+                        top: origin,
+                    },
+                    destination,
+                )
+            }
         };
         lines.push(line);
-        origin =new_origin;
+        origin = new_origin;
     }
 
     lines
@@ -109,32 +210,38 @@ fn compute_intersections(first: &[Line], second: &[Line]) -> Vec<Point> {
 impl Line {
     fn intersect(&self, other: &Line) -> Option<Point> {
         match self {
-            Line::Horizontal { left, right } => {
-                match other {
-                    Line::Horizontal { .. } => None,
-                    Line::Vertical { bottom, top } => straight_line_intersection(left, top, right, bottom),
+            Line::Horizontal { left, right } => match other {
+                Line::Horizontal { .. } => None,
+                Line::Vertical { bottom, top } => {
+                    straight_line_intersection(left, top, right, bottom)
                 }
             },
-//                +
-//                |
-//            +---X---+
-//                |
-//                +
-
-
-            Line::Vertical { bottom, top } => {
-                match other {
-                    Line::Horizontal { left, right } => straight_line_intersection(left, top, right, bottom),
-                    Line::Vertical { .. } => None,
+            //                +
+            //                |
+            //            +---X---+
+            //                |
+            //                +
+            Line::Vertical { bottom, top } => match other {
+                Line::Horizontal { left, right } => {
+                    straight_line_intersection(left, top, right, bottom)
                 }
+                Line::Vertical { .. } => None,
             },
         }
     }
 }
 
-fn straight_line_intersection(left: &Point, top: &Point, right: &Point, bottom: &Point) -> Option<Point>{
-    if left.y > bottom.y && bottom.x < left.x && right.y < top.y && top.x < right.x  {
-        Some(Point{ x: bottom.x, y: left.y })
+fn straight_line_intersection(
+    left: &Point,
+    top: &Point,
+    right: &Point,
+    bottom: &Point,
+) -> Option<Point> {
+    if left.y > bottom.y && bottom.x < left.x && right.y < top.y && top.x < right.x {
+        Some(Point {
+            x: bottom.x,
+            y: left.y,
+        })
     } else {
         None
     }
@@ -165,14 +272,31 @@ mod tests {
 
     #[test]
     fn test_parse_lines() {
-        let directions = vec![Direction::Right(4), Direction::Up(3), Direction::Left(2), Direction::Down(1)];
+        let directions = vec![
+            Direction::Right(4),
+            Direction::Up(3),
+            Direction::Left(2),
+            Direction::Down(1),
+        ];
         let lines = lines_from_directions(&directions);
 
         let expected = vec![
-            Line::Horizontal {left:Point{ x: 0, y: 0 }, right: Point { x: 4, y: 0 } },
-            Line::Vertical { bottom: Point { x: 4, y: 0 }, top: Point { x: 4, y: 3 } },
-            Line::Horizontal {left:Point{ x: 2, y: 3 }, right: Point { x: 4, y: 3 } },
-            Line::Vertical { bottom: Point { x: 2, y: 2 }, top: Point { x: 2, y: 3 } },
+            Line::Horizontal {
+                left: Point { x: 0, y: 0 },
+                right: Point { x: 4, y: 0 },
+            },
+            Line::Vertical {
+                bottom: Point { x: 4, y: 0 },
+                top: Point { x: 4, y: 3 },
+            },
+            Line::Horizontal {
+                left: Point { x: 2, y: 3 },
+                right: Point { x: 4, y: 3 },
+            },
+            Line::Vertical {
+                bottom: Point { x: 2, y: 2 },
+                top: Point { x: 2, y: 3 },
+            },
         ];
         assert_eq!(&expected, &lines)
     }
