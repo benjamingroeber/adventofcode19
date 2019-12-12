@@ -1,5 +1,5 @@
 [package]
-name = "day4"
+name = "intcode"
 version = "0.1.0"
 authors = ["Benjamin Groeber <mail@benjamingroeber.com>"]
 edition = "2018"
