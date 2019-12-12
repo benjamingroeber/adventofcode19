@@ -1,38 +1,99 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
+// TODO this would be a nice opportunity to implement an Iterator over the parents
+
+struct Galaxy {
+    /// This tracks center of orbit (parent), for each space object
+    /// Each object except for the universal center "COM" is guaranteed to have a parent
+    orbit_relations: HashMap<SpaceObject, Option<SpaceObject>>
+}
+
+impl Galaxy {
+    fn new() -> Self {
+        let mut orbit_relations = HashMap::new();
+        orbit_relations.insert("COM".to_string(), None);
+        Galaxy{ orbit_relations }
+    }
+
+    fn new_from_orbits(orbits: Vec<Orbit>) -> Self {
+        let mut galaxy = Galaxy::new();
+
+        // Build Map of each Object to its parent
+        for orbit in orbits {
+            galaxy.add_orbit(orbit)
+        }
+        galaxy
+    }
+
+    fn add_orbit(&mut self, orbit: Orbit) {
+        if &orbit.orbiter == "COM" {
+            panic!{"Can't overwrite COM!"}
+        }
+        self.orbit_relations.insert(orbit.orbiter, Some(orbit.center));
+    }
+
+    /// the orbit count of a galaxy is defined as the sum of direct orbits of all objects
+    /// A orbits COM (+1), and B Orbits A (+1)
+    /// plus the sum of indirect orbits
+    /// As B orbits A together with A it also orbits COM ( +1 )
+
+    // TODO WRITE A TEST FOR THIS
+    fn get_orbit_count(&self) -> usize {
+        let mut orbits = 0;
+        for (object_id, parent) in &self.orbit_relations {
+            let mut parent = parent;
+            while let Some(current_parent) = parent {
+                orbits+=1;
+                parent = &self.orbit_relations[current_parent];
+            }
+        }
+        orbits
+    }
+
+    fn get_parents_of(&self, id: &str) -> Option<Vec<SpaceObject>> {
+        if !self.orbit_relations.contains_key(id) {
+            return None
+        }
+
+        let mut parent = &self.orbit_relations[id];
+        let mut parents = Vec::new();
+        while let Some(curr_parent) = parent {
+            parents.push(curr_parent.clone());
+            parent = &self.orbit_relations[curr_parent];
+        }
+
+        Some(parents)
+    }
+}
 
 fn main() {
     let orbits = parse_orbits(INPUT);
-    // Build Map of each Object to its parent
-    let mut objects = HashMap::new();
-    objects.insert("COM".to_string(), None);
-    for orbit in orbits {
-        objects.insert(orbit.orbiter, Some(orbit.center));
-    }
 
-    // Count Number of orbits per object
-    let mut orbit_count = HashMap::new();
-    for (object_id, parent) in &objects {
-        let mut parent = parent;
-        let mut orbits: usize = 0;
-        while let Some(current_parent) = parent {
-            orbits+=1;
-            parent = &objects[current_parent];
-        }
-        orbit_count.insert(object_id.to_owned(), orbits);
-    }
+    let galaxy = Galaxy::new_from_orbits(orbits);
+    let total_orbits = galaxy.get_orbit_count();
+    println!("Orbits: {}", total_orbits );
 
-    let total_orbits: usize = orbit_count.iter().map(|c| c.1).sum();
-    println!("Orbits: {:?}, Sum: {}", orbit_count, total_orbits );
+    let san_parents = galaxy.get_parents_of("SAN").unwrap();
+    let my_parents = galaxy.get_parents_of("YOU").unwrap();
 
-    // Part 2
+    // PART 2
+    // just count how many initial steps are shared among both,
+    // this abuses the fact that once there is one difference, all other values MUST be different
+    // because of the tree structure
+    let my_from_center = my_parents.iter().rev();
+    let san_from_center = san_parents.iter().rev();
+    let common_root = san_from_center.zip(my_from_center).filter(|(a,b)| **a == **b).count();
+
+    let steps_required = (my_parents.len() - common_root) + (san_parents.len() - common_root);
+
+    println!("Required steps: {}", steps_required);
 }
 
-type SpaceObjectId = String;
+type SpaceObject = String;
 
 #[derive(Debug, Clone, Eq, PartialEq)]
 struct Orbit {
-    center: SpaceObjectId,
-    orbiter: SpaceObjectId,
+    center: SpaceObject,
+    orbiter: SpaceObject,
 }
 
 fn parse_orbits(input: &str) -> Vec<Orbit> {
@@ -55,6 +116,38 @@ fn parse_orbit(input: &str) -> Orbit {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn test_get_orbit_count_indirect() {
+        let orbits = vec![parse_orbit("COM)A"),  parse_orbit("A)B")];
+        let galaxy = Galaxy::new_from_orbits(orbits);
+
+        let count = galaxy.get_orbit_count();
+
+        assert_eq!(count, 3)
+    }
+
+    #[test]
+    fn test_get_orbit_count_direct() {
+        let orbits = vec![parse_orbit("COM)A")];
+        let galaxy = Galaxy::new_from_orbits(orbits);
+
+        let count = galaxy.get_orbit_count();
+
+        assert_eq!(count, 1)
+    }
+
+    #[test]
+    fn test_get_parents() {
+        let orbits = vec![parse_orbit("COM)A"),  parse_orbit("A)B"), parse_orbit("A)C"), parse_orbit("B)D")];
+        let galaxy = Galaxy::new_from_orbits(orbits);
+
+        let d_parents = galaxy.get_parents_of("D").unwrap();
+        let c_parents = galaxy.get_parents_of("C").unwrap();
+
+        assert_eq!(vec!["B", "A", "COM"], d_parents);
+        assert_eq!(vec!["A", "COM"], c_parents);
+    }
 
     #[test]
     fn test_parse_orbit() {
