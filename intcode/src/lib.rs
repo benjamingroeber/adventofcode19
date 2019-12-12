@@ -1,3 +1,5 @@
+use std::collections::VecDeque;
+
 pub type Value = i32;
 type Addr = usize;
 
@@ -5,8 +7,9 @@ type Addr = usize;
 pub struct Program {
     data: Vec<Value>,
     instruction_ptr: Addr,
-    input: Option<Value>,
-    output: String,
+    input: VecDeque<Value>,
+    output: VecDeque<Value>,
+    elapsed: usize,
 }
 
 impl Program {
@@ -14,18 +17,35 @@ impl Program {
         Program {
             data,
             instruction_ptr: 0,
-            input: None,
-            output: String::new()
+            input: VecDeque::new(),
+            output: VecDeque::new(),
+            elapsed: 0,
         }
     }
     pub fn set_input(&mut self, value: Value) {
-        self.input = Some(value);
+        self.input.push_back(value);
     }
-    pub fn run(&mut self) -> &String {
+    /// `run()` will run the Program until it halts, and return all output generated
+    pub fn run(&mut self) -> &VecDeque<Value> {
         while let Some(steps) = self.execute_instruction() {
-            self.instruction_ptr += steps
+            self.instruction_ptr += steps;
+            self.elapsed += 1;
         }
         &self.output
+    }
+
+    /// `run_pipe()` will pause execution after every output and return `Some(output)`
+    /// When execution terminates as `OpCode::Halt` is reached, `None` is returned
+    pub fn run_pipe(&mut self) -> Option<Value> {
+        while let Some(steps) = self.execute_instruction() {
+            self.instruction_ptr += steps;
+            self.elapsed += 1;
+            if ! self.output.is_empty() {
+                return self.output.pop_front()
+            }
+        }
+        // Program has halted
+        None
     }
     // needed for day2 back-compatibility
     pub fn inspect(&self, position: usize) -> Value {
@@ -56,16 +76,14 @@ impl Program {
             OpCode::Input => {
                 let target_addr = self.address_at(self.instruction_ptr + 1);
 
-                self.set(
-                    target_addr,
-                    self.input.expect("Input required, but not set!"),
-                );
+                let input = self.input.pop_front().expect("Not enough input provided!");
+                self.set(target_addr, input);
                 Some(2)
             }
             OpCode::Output => {
                 let value = self.value_at(self.instruction_ptr + 1);
-                self.output.push_str(&format!("{}\n", value));
-//                println!("Output: {}", value);
+                self.output.push_back(value) ;
+//                                println!("Output: {}", value);
                 Some(2)
             }
             OpCode::JumpIfTrue => {

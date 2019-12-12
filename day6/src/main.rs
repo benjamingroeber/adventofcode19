@@ -4,14 +4,14 @@ use std::collections::HashMap;
 struct Galaxy {
     /// This tracks center of orbit (parent), for each space object
     /// Each object except for the universal center "COM" is guaranteed to have a parent
-    orbit_relations: HashMap<SpaceObject, Option<SpaceObject>>
+    orbit_relations: HashMap<SpaceObject, Option<SpaceObject>>,
 }
 
 impl Galaxy {
     fn new() -> Self {
         let mut orbit_relations = HashMap::new();
         orbit_relations.insert("COM".to_string(), None);
-        Galaxy{ orbit_relations }
+        Galaxy { orbit_relations }
     }
 
     fn new_from_orbits(orbits: Vec<Orbit>) -> Self {
@@ -26,9 +26,10 @@ impl Galaxy {
 
     fn add_orbit(&mut self, orbit: Orbit) {
         if &orbit.orbiter == "COM" {
-            panic!{"Can't overwrite COM!"}
+            panic! {"Can't overwrite COM!"}
         }
-        self.orbit_relations.insert(orbit.orbiter, Some(orbit.center));
+        self.orbit_relations
+            .insert(orbit.orbiter, Some(orbit.center));
     }
 
     /// the orbit count of a galaxy is defined as the sum of direct orbits of all objects
@@ -42,7 +43,7 @@ impl Galaxy {
         for (object_id, parent) in &self.orbit_relations {
             let mut parent = parent;
             while let Some(current_parent) = parent {
-                orbits+=1;
+                orbits += 1;
                 parent = &self.orbit_relations[current_parent];
             }
         }
@@ -51,7 +52,7 @@ impl Galaxy {
 
     fn get_parents_of(&self, id: &str) -> Option<Vec<SpaceObject>> {
         if !self.orbit_relations.contains_key(id) {
-            return None
+            return None;
         }
 
         let mut parent = &self.orbit_relations[id];
@@ -70,7 +71,7 @@ fn main() {
 
     let galaxy = Galaxy::new_from_orbits(orbits);
     let total_orbits = galaxy.get_orbit_count();
-    println!("Orbits: {}", total_orbits );
+    println!("Orbits: {}", total_orbits);
 
     let san_parents = galaxy.get_parents_of("SAN").unwrap();
     let my_parents = galaxy.get_parents_of("YOU").unwrap();
@@ -81,7 +82,10 @@ fn main() {
     // because of the tree structure
     let my_from_center = my_parents.iter().rev();
     let san_from_center = san_parents.iter().rev();
-    let common_root = san_from_center.zip(my_from_center).filter(|(a,b)| **a == **b).count();
+    let common_root = san_from_center
+        .zip(my_from_center)
+        .filter(|(a, b)| **a == **b)
+        .count();
 
     let steps_required = (my_parents.len() - common_root) + (san_parents.len() - common_root);
 
@@ -119,7 +123,7 @@ mod tests {
 
     #[test]
     fn test_get_orbit_count_indirect() {
-        let orbits = vec![parse_orbit("COM)A"),  parse_orbit("A)B")];
+        let orbits = vec![parse_orbit("COM)A"), parse_orbit("A)B")];
         let galaxy = Galaxy::new_from_orbits(orbits);
 
         let count = galaxy.get_orbit_count();
@@ -139,7 +143,12 @@ mod tests {
 
     #[test]
     fn test_get_parents() {
-        let orbits = vec![parse_orbit("COM)A"),  parse_orbit("A)B"), parse_orbit("A)C"), parse_orbit("B)D")];
+        let orbits = vec![
+            parse_orbit("COM)A"),
+            parse_orbit("A)B"),
+            parse_orbit("A)C"),
+            parse_orbit("B)D"),
+        ];
         let galaxy = Galaxy::new_from_orbits(orbits);
 
         let d_parents = galaxy.get_parents_of("D").unwrap();

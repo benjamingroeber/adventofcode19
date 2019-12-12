@@ -44,9 +44,9 @@ fn main() {
     let mut part2 = part1.clone();
     println!("Part1:");
     part1.set_input(1);
-    println!("{}", part1.run());
+    println!("{:?}", part1.run());
 
     println!("Part2:");
     part2.set_input(5);
-    println!("{}", part2.run());
+    println!("{:?}", part2.run());
 }
