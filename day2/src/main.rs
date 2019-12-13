@@ -16,7 +16,7 @@ fn main() {
             let mut data = input.clone();
             data[1] = noun as Value;
             data[2] = verb as Value;
-            let mut p = Program::new(data);
+            let mut p = Program::new(&data);
             p.run();
 
             let result = p.inspect(0);

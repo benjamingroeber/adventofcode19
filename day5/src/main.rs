@@ -40,7 +40,7 @@ fn main() {
         226, 224, 1002, 223, 2, 223, 1006, 224, 674, 1001, 223, 1, 223, 4, 223, 99, 226,
     ];
 
-    let mut part1 = Program::new(data);
+    let mut part1 = Program::new(&data);
     let mut part2 = part1.clone();
     println!("Part1:");
     part1.set_input(1);
