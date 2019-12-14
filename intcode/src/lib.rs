@@ -89,21 +89,21 @@ impl Program {
                 let sum = self.param(1, instruction.parameter_modes[0])
                     + self.param(2, instruction.parameter_modes[1]);
                 let target_addr = self.address_at(self.instruction_ptr + 3);
-                self.set(target_addr, sum);
+                self.set(target_addr, sum, instruction.parameter_modes[2]);
                 Some(4)
             }
             OpCode::Mul => {
                 let product = self.param(1, instruction.parameter_modes[0])
                     * self.param(2, instruction.parameter_modes[1]);
                 let target_addr = self.address_at(self.instruction_ptr + 3);
-                self.set(target_addr, product);
+                self.set(target_addr, product, instruction.parameter_modes[2]);
                 Some(4)
             }
             OpCode::Input => {
                 let target_addr = self.address_at(self.instruction_ptr + 1);
 
                 let input = self.input.pop_front().expect("Not enough input provided!");
-                self.set(target_addr, input);
+                self.set(target_addr, input, instruction.parameter_modes[0]);
                 Some(2)
             }
             OpCode::Output => {
@@ -139,9 +139,9 @@ impl Program {
                 if self.param(1, instruction.parameter_modes[0])
                     < self.param(2, instruction.parameter_modes[1])
                 {
-                    self.set(target_addr, 1)
+                    self.set(target_addr, 1, instruction.parameter_modes[2])
                 } else {
-                    self.set(target_addr, 0)
+                    self.set(target_addr, 0, instruction.parameter_modes[2])
                 }
                 Some(4)
             }
@@ -150,9 +150,9 @@ impl Program {
                 if self.param(1, instruction.parameter_modes[0])
                     == self.param(2, instruction.parameter_modes[1])
                 {
-                    self.set(target_addr, 1)
+                    self.set(target_addr, 1, instruction.parameter_modes[2])
                 } else {
-                    self.set(target_addr, 0)
+                    self.set(target_addr, 0, instruction.parameter_modes[2])
                 }
                 Some(4)
             }
@@ -175,6 +175,17 @@ impl Program {
             ParameterMode::Relative => self.value_at_relative_position(param_addr)
         }
     }
+    fn set(&mut self, addr: usize, value: Value, mode: ParameterMode) {
+        let dest_addr = match mode {
+            ParameterMode::Position => addr,
+            ParameterMode::Immediate => panic!("Day 5 states this will never happen"),
+            ParameterMode::Relative => {
+                let offset = self.value_at(addr);
+                (self.relative_base as Value + addr as Value) as usize
+            }};
+
+        self.memory.insert(dest_addr, value);
+    }
     fn address_at(&self, addr: usize) -> usize {
         // FIXME this panics on invalid values
         self.memory[&addr] as usize
@@ -191,9 +202,6 @@ impl Program {
         let offset = self.value_at(addr);
         let addr = (self.relative_base as Value + offset) as usize;
         self.memory.get(&addr).cloned().unwrap_or(0)
-    }
-    fn set(&mut self, addr: usize, value: Value) {
-        self.memory.insert(addr, value);
     }
 }
 
@@ -279,6 +287,37 @@ mod tests {
     use crate::ParameterMode::{Immediate, Position, Relative};
 
     // Day 9 - relative base
+
+    #[test]
+    fn test_implementation_correctness() {
+        let cases = vec![
+            (vec![109, -1,   4, 1, 99], -1),
+            (vec![109, -1, 104, 1, 99], 1),
+            (vec![109, -1, 204, 1, 99], 109),
+            (vec![109, 1,   9, 2, 204,    -6, 99], 204),
+            (vec![109, 1, 109, 9, 204,    -6, 99], 204),
+            (vec![109, 1, 209, -1, 204, -106, 99], 204),
+        ];
+
+        for (data, expected) in cases {
+            let mut p = Program::new(&data);
+            let output = p.run();
+            assert_eq!(output[0], expected)
+        }
+    }
+    #[test]
+    fn test_implementation_correctness_with_input() {
+        let inputs: Vec<i64> = vec![0, 1, 100, i32::max_value() as i64 + 1];
+        let test_data = vec![vec![109, 1,   3, 3, 204, 2, 99], vec![109, 1, 203, 2, 204, 2, 99]];
+        for input in inputs {
+            for data in &test_data {
+                let mut p = Program::new(&data);
+                p.set_input(input);
+                let output = p.run();
+                assert_eq!(output[0], input)
+            }
+        }
+    }
     #[test]
     fn test_init_memory() {
         let data = vec![0, 1, 2, 3];
