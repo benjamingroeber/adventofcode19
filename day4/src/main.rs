@@ -7,8 +7,8 @@
 type Unit = i32;
 
 fn main() {
-    let from: Unit = 264360;
-    let to: Unit = 746325;
+    let from: Unit = 264_360;
+    let to: Unit = 746_325;
 
     let count = (from..to).filter(|n| is_match_first_challenge(*n)).count();
     println!("Part 1: {} possible matches", count);
@@ -25,7 +25,7 @@ fn is_match_second_challenge(n: Unit) -> bool {
 }
 
 fn is_six_digit_number(n: Unit) -> bool {
-    n >= 100000 && n < 1000000
+    n >= 100_000 && n < 1_000_000
 }
 
 /// This does only check for the presence of any adjacent identical digits
@@ -45,7 +45,7 @@ fn has_adjacent_digits(n: Unit) -> bool {
         number = new_number;
     }
 
-    return false;
+    false
 }
 
 /// This does account for one set of two adjacent identical digits
@@ -75,7 +75,7 @@ fn has_set_of_two_adjacent_digits(n: Unit) -> bool {
     }
 
     // true if last set of numbers is matching criteria
-    return repetitions == 1;
+    repetitions == 1
 }
 
 fn split_last_digit(n: Unit) -> (Unit, Unit) {
@@ -97,7 +97,7 @@ fn has_only_increasing_digits(n: Unit) -> bool {
         number = new_number;
     }
 
-    return true;
+    true
 }
 
 #[cfg(test)]

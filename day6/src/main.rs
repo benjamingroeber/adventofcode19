@@ -40,7 +40,7 @@ impl Galaxy {
     // TODO WRITE A TEST FOR THIS
     fn get_orbit_count(&self) -> usize {
         let mut orbits = 0;
-        for (object_id, parent) in &self.orbit_relations {
+        for parent in self.orbit_relations.values() {
             let mut parent = parent;
             while let Some(current_parent) = parent {
                 orbits += 1;
@@ -105,7 +105,7 @@ fn parse_orbits(input: &str) -> Vec<Orbit> {
 }
 
 fn parse_orbit(input: &str) -> Orbit {
-    let mut parts = input.split(")");
+    let mut parts = input.split(')');
     let center = parts.next().expect("Could not parse center");
     let orbiter = parts.next().expect("Could not parse orbiter");
     if parts.next().is_some() {

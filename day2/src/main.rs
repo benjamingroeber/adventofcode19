@@ -28,7 +28,7 @@ fn main() {
 
             // Find the input noun and verb that cause the program to produce the output 19690720.
             // What is 100 * noun + verb?
-            if p.inspect(0) == 19690720 {
+            if p.inspect(0) == 19_690_720 {
                 println!(
                     "Solution2: {}, Result: {}, Noun: {}, Verb: {}",
                     100 * noun + verb,

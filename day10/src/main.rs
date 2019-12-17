@@ -157,7 +157,7 @@ impl Map {
         let mut angles_order: HashMap<isize, VecDeque<RelativePosition>> = HashMap::new();
         for relative_position in &other_asteroids {
             let angle = (relative_position.angle * 1_000.0).round() as isize;
-            let angle_order = angles_order.entry(angle).or_insert_with(||VecDeque::new());
+            let angle_order = angles_order.entry(angle).or_insert_with(VecDeque::new);
             angle_order.push_back(*relative_position)
         }
 
@@ -352,8 +352,6 @@ mod tests {
 
     #[test]
     fn test_get_asteroids() {
-        #[test]
-        fn test_get() {
             let input = "##
 .#";
             let map = Map::new(input);
@@ -366,7 +364,7 @@ mod tests {
             ];
 
             assert_eq!(expected, asteroids);
-        }
+
     }
 
     #[test]

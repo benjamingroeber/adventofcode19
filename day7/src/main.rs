@@ -31,7 +31,6 @@ fn main() {
     let permutations = Heap::new(&mut possible_values);
 
     let max = permutations
-        .into_iter()
         .map(|p| amplifier.amplify(&p))
         .max();
     println!("Highest possible thrust input is: {:?}", max);
@@ -41,7 +40,6 @@ fn main() {
     let permutations = Heap::new(&mut possible_values);
 
     let max = permutations
-        .into_iter()
         .map(|p| amplifier.amplify_pipe(&p))
         .max();
     println!("Highest possible thrust input is: {:?}", max)
@@ -57,11 +55,10 @@ impl Amplifier {
     }
     fn amplify(&self, phases: &[Value]) -> Value {
         let mut input = 0;
-        for i in 0..phases.len() {
+        for phase in phases {
             let mut p = Program::new(&self.data);
-            let phase = phases[i];
 
-            p.set_input(phase);
+            p.set_input(*phase);
             p.set_input(input);
             let output = p.run();
             if output.len() > 1 {
@@ -81,8 +78,7 @@ impl Amplifier {
         // set input for first Amplifier once
         let mut input = 0;
         loop {
-            for i in 0..programs.len() {
-                let p = &mut programs[i];
+            for p in programs.iter_mut() {
                 p.set_input(input);
 
                 // loop until program halts

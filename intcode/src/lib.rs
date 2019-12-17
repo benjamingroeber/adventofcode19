@@ -122,7 +122,7 @@ impl Program {
                     // Don't advance if instruction_ptr was set
                     return Some(0);
                 }
-                return Some(3);
+                Some(3)
             }
             OpCode::JumpIfFalse => {
                 if self.param(1, instruction.parameter_modes[0]) == 0 {
@@ -133,7 +133,7 @@ impl Program {
                     // Don't advance if instruction_ptr was set
                     return Some(0);
                 }
-                return Some(3);
+                Some(3)
             }
             OpCode::LessThan => {
                 let target_addr = self.address_at(self.instruction_ptr + 3);
@@ -181,7 +181,6 @@ impl Program {
             ParameterMode::Position => addr,
             ParameterMode::Immediate => panic!("Day 5 states this will never happen"),
             ParameterMode::Relative => {
-                let offset = self.value_at(addr);
                 (self.relative_base as Value + addr as Value) as usize
             }
         };
@@ -250,19 +249,19 @@ fn instruction_from_value(value: Value) -> Instruction {
 fn parameter_mode_from_value(value: Value) -> ParameterModes {
     let mut remainder = value;
     let mut parameter_modes = [ParameterMode::Position; 3];
-    for i in 0..parameter_modes.len() {
+    for parameter_mode in &mut parameter_modes {
         let digit = remainder % 10;
         if digit == 2 {
-            parameter_modes[i] = ParameterMode::Relative
+            *parameter_mode = ParameterMode::Relative
         } else if digit == 1 {
-            parameter_modes[i] = ParameterMode::Immediate
+            *parameter_mode = ParameterMode::Immediate
         } else if digit == 0 {
             // nothing to do
         } else {
             panic!("Unknown parameter mode: {}", digit)
         }
 
-        remainder = remainder / 10;
+        remainder /= 10;
     }
     parameter_modes
 }

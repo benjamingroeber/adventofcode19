@@ -8,16 +8,14 @@ L994,U274,R468,D607,R236,D712,R825,D228,L812,U796,R806,D874,L742,D297,L269,D853,
 fn main() {
     let mut lines = INPUT.lines();
     let first_line = lines.next().unwrap();
-    let first_directions: Vec<Direction> = first_line.split(",").map(direction_from_str).collect();
+    let first_directions: Vec<Direction> = first_line.split(',').map(direction_from_str).collect();
 
-    let second_line = lines.next().unwrap();
-    let second_directions: Vec<_> = first_line.split(",").map(direction_from_str).collect();
-    let second_lines = lines_from_directions(&second_directions);
+    let second_directions: Vec<_> = first_line.split(',').map(direction_from_str).collect();
 
     let first_visited_points = visited_points_from_directions(&first_directions);
     let second_visited_points = visited_points_from_directions(&second_directions);
 
-    let mut intersections: Vec<_> = first_visited_points
+    let intersections: Vec<_> = first_visited_points
         .iter()
         .filter_map(|(point, steps)| {
             if let Some(second_steps) = second_visited_points.get(point) {
@@ -104,12 +102,6 @@ impl Point {
 }
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
-enum Line {
-    Horizontal { left: Point, right: Point },
-    Vertical { bottom: Point, top: Point },
-}
-
-#[derive(Debug, Copy, Clone, Eq, PartialEq)]
 enum Direction {
     Right(Unit),
     Up(Unit),
@@ -129,128 +121,9 @@ fn direction_from_str(s: &str) -> Direction {
     }
 }
 
-fn lines_from_directions(directions: &[Direction]) -> Vec<Line> {
-    let mut lines = Vec::new();
-    let mut origin = Point { x: 0, y: 0 };
-    for &direction in directions {
-        let (line, new_origin) = match direction {
-            Direction::Right(offset) => {
-                let destination = Point {
-                    x: origin.x + offset,
-                    y: origin.y,
-                };
-                (
-                    Line::Horizontal {
-                        left: origin,
-                        right: destination,
-                    },
-                    destination,
-                )
-            }
-            Direction::Left(offset) => {
-                let destination = Point {
-                    x: origin.x - offset,
-                    y: origin.y,
-                };
-                (
-                    Line::Horizontal {
-                        left: destination,
-                        right: origin,
-                    },
-                    destination,
-                )
-            }
-            Direction::Up(offset) => {
-                let destination = Point {
-                    x: origin.x,
-                    y: origin.y + offset,
-                };
-                (
-                    Line::Vertical {
-                        bottom: origin,
-                        top: destination,
-                    },
-                    destination,
-                )
-            }
-            Direction::Down(offset) => {
-                let destination = Point {
-                    x: origin.x,
-                    y: origin.y - offset,
-                };
-                (
-                    Line::Vertical {
-                        bottom: destination,
-                        top: origin,
-                    },
-                    destination,
-                )
-            }
-        };
-        lines.push(line);
-        origin = new_origin;
-    }
-
-    lines
-}
-
-fn compute_intersections(first: &[Line], second: &[Line]) -> Vec<Point> {
-    let mut intersections = Vec::new();
-
-    for fline in first {
-        for sline in second {
-            if let Some(point) = fline.intersect(sline) {
-                intersections.push(point);
-            }
-        }
-    }
-    intersections
-}
-
-impl Line {
-    fn intersect(&self, other: &Line) -> Option<Point> {
-        match self {
-            Line::Horizontal { left, right } => match other {
-                Line::Horizontal { .. } => None,
-                Line::Vertical { bottom, top } => {
-                    straight_line_intersection(left, top, right, bottom)
-                }
-            },
-            //                +
-            //                |
-            //            +---X---+
-            //                |
-            //                +
-            Line::Vertical { bottom, top } => match other {
-                Line::Horizontal { left, right } => {
-                    straight_line_intersection(left, top, right, bottom)
-                }
-                Line::Vertical { .. } => None,
-            },
-        }
-    }
-}
-
-fn straight_line_intersection(
-    left: &Point,
-    top: &Point,
-    right: &Point,
-    bottom: &Point,
-) -> Option<Point> {
-    if left.y > bottom.y && bottom.x < left.x && right.y < top.y && top.x < right.x {
-        Some(Point {
-            x: bottom.x,
-            y: left.y,
-        })
-    } else {
-        None
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::ptr::eq;
 
     #[test]
     fn test_parse_directions() {
@@ -268,36 +141,5 @@ mod tests {
         assert_eq!(Direction::Left(2), d_left);
         assert_eq!(Direction::Right(3), d_right);
         assert_eq!(Direction::Down(4), d_down);
-    }
-
-    #[test]
-    fn test_parse_lines() {
-        let directions = vec![
-            Direction::Right(4),
-            Direction::Up(3),
-            Direction::Left(2),
-            Direction::Down(1),
-        ];
-        let lines = lines_from_directions(&directions);
-
-        let expected = vec![
-            Line::Horizontal {
-                left: Point { x: 0, y: 0 },
-                right: Point { x: 4, y: 0 },
-            },
-            Line::Vertical {
-                bottom: Point { x: 4, y: 0 },
-                top: Point { x: 4, y: 3 },
-            },
-            Line::Horizontal {
-                left: Point { x: 2, y: 3 },
-                right: Point { x: 4, y: 3 },
-            },
-            Line::Vertical {
-                bottom: Point { x: 2, y: 2 },
-                top: Point { x: 2, y: 3 },
-            },
-        ];
-        assert_eq!(&expected, &lines)
     }
 }
