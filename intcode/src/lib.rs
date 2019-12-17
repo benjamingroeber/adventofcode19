@@ -50,6 +50,7 @@ impl Program {
             self.instruction_ptr += steps;
             self.elapsed += 1;
         }
+        //        println!("Steps taken: {}", self.elapsed);
         &self.output
     }
 
@@ -172,7 +173,7 @@ impl Program {
         match mode {
             ParameterMode::Position => self.value_at_position(param_addr), //data[self.address_at(self.instruction_ptr + offset)],
             ParameterMode::Immediate => self.value_at(param_addr),
-            ParameterMode::Relative => self.value_at_relative_position(param_addr)
+            ParameterMode::Relative => self.value_at_relative_position(param_addr),
         }
     }
     fn set(&mut self, addr: usize, value: Value, mode: ParameterMode) {
@@ -182,7 +183,8 @@ impl Program {
             ParameterMode::Relative => {
                 let offset = self.value_at(addr);
                 (self.relative_base as Value + addr as Value) as usize
-            }};
+            }
+        };
 
         self.memory.insert(dest_addr, value);
     }
@@ -291,11 +293,11 @@ mod tests {
     #[test]
     fn test_implementation_correctness() {
         let cases = vec![
-            (vec![109, -1,   4, 1, 99], -1),
+            (vec![109, -1, 4, 1, 99], -1),
             (vec![109, -1, 104, 1, 99], 1),
             (vec![109, -1, 204, 1, 99], 109),
-            (vec![109, 1,   9, 2, 204,    -6, 99], 204),
-            (vec![109, 1, 109, 9, 204,    -6, 99], 204),
+            (vec![109, 1, 9, 2, 204, -6, 99], 204),
+            (vec![109, 1, 109, 9, 204, -6, 99], 204),
             (vec![109, 1, 209, -1, 204, -106, 99], 204),
         ];
 
@@ -308,7 +310,10 @@ mod tests {
     #[test]
     fn test_implementation_correctness_with_input() {
         let inputs: Vec<i64> = vec![0, 1, 100, i32::max_value() as i64 + 1];
-        let test_data = vec![vec![109, 1,   3, 3, 204, 2, 99], vec![109, 1, 203, 2, 204, 2, 99]];
+        let test_data = vec![
+            vec![109, 1, 3, 3, 204, 2, 99],
+            vec![109, 1, 203, 2, 204, 2, 99],
+        ];
         for input in inputs {
             for data in &test_data {
                 let mut p = Program::new(&data);

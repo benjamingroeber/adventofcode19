@@ -56,5 +56,10 @@ fn main() {
     program.set_input(1);
     let output = program.run();
 
-    println!("Output: {:?}", output)
+    println!("TEST: {:?}", output);
+
+    let mut program = Program::new(&data);
+    program.set_input(2);
+    let output = program.run();
+    println!("BOOST: {:?}", output)
 }
