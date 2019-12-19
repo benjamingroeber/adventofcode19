@@ -1,3 +1,5 @@
+use num::Integer;
+
 fn main() {
     let moons = moons_from_str(
         "<x=3, y=3, z=0>
@@ -5,9 +7,17 @@ fn main() {
 <x=-10, y=-6, z=5>
 <x=-3, y=0, z=-13>",
     );
-    let mut system = System::new(moons);
+    let mut system = System::new(moons.clone());
     while system.step() < 1000 {}
     println!("Total Energy: {}", system.total_energy());
+
+    let mut system = System::new(moons);
+    let dimension_loops = system.step_until_all_loops_complete();
+    let common_loop = get_common_loop_step(dimension_loops);
+    println!(
+        "Loops: {:?}, First common step: {}",
+        dimension_loops, common_loop,
+    );
 }
 
 type Value = i32;
@@ -42,11 +52,18 @@ impl Moon {
 struct System {
     moons: Vec<Moon>,
     step: usize,
+    initial_position: Vec<Moon>,
+    loop_at: [Option<usize>; DIMENSIONS],
 }
 
 impl System {
     fn new(moons: Vec<Moon>) -> Self {
-        Self { moons, step: 0 }
+        Self {
+            initial_position: moons.clone(),
+            moons,
+            step: 0,
+            loop_at: [None; DIMENSIONS],
+        }
     }
     /// Simulate the motion of the moons in time steps. Within each time step, first update the
     /// velocity of every moon by applying gravity. Then, once all moons' velocities have been
@@ -61,7 +78,39 @@ impl System {
         }
         self.apply_velocity();
         self.step += 1;
+
+        // Part 2 requires additional checks and keeping track of cycles
+        self.recognize_cycles();
+
         self.step
+    }
+    /// This function runs steps until a loop has been found in all three dimensions.
+    fn step_until_all_loops_complete(&mut self) -> [usize; DIMENSIONS] {
+        while self.loop_at.iter().any(|a| a.is_none()) {
+            self.step();
+        }
+        let mut result = [0; DIMENSIONS];
+        for (i, step) in self.loop_at.iter().map(|item|item.unwrap()).enumerate() {
+            result[i] = step;
+        }
+        result
+    }
+    /// This method keeps track of cycles for each dimension in the system.
+    /// It will keep track of the first time position and velocity of a single dimension are back
+    /// to the initial state.
+    fn recognize_cycles(&mut self) {
+        for dimension in 0..DIMENSIONS {
+            let positions_match = (0..self.moons.len()).all(|idx| {
+                self.moons[idx].position[dimension]
+                    == self.initial_position[idx].position[dimension]
+                    && self.moons[idx].velocity[dimension]
+                        == self.initial_position[idx].velocity[dimension]
+            });
+            if positions_match && self.loop_at[dimension].is_none() {
+                println!("Dimensino {} loops at {}", dimension, self.step);
+                self.loop_at[dimension] = Some(self.step)
+            }
+        }
     }
     fn total_energy(&self) -> Value {
         self.moons.iter().map(|m| m.total_energy()).sum()
@@ -121,6 +170,10 @@ fn parse_coordinate_from_str(input: &str) -> Value {
         .filter(|c| c.is_digit(10) || *c == '-')
         .collect();
     numeric_chars.parse().unwrap()
+}
+
+fn get_common_loop_step(loops: [usize; DIMENSIONS]) -> usize {
+    loops[0].lcm(&loops[1]).lcm(&loops[2])
 }
 
 #[cfg(test)]
@@ -217,14 +270,24 @@ mod tests {
             },
             Moon {
                 position: [2, 0, 4],
-                velocity: [ 1, -1, -1],
+                velocity: [1, -1, -1],
             },
         ];
 
         let mut system = System::new(moons);
-        while system.step() < 10 {
-        }
+        while system.step() < 10 {}
 
         assert_eq!(tenth_step, system.moons)
+    }
+
+    #[test]
+    fn test_example_loop() {
+        let moons = moons_from_str(
+            "<x=-8, y=-10, z=0>\n<x=5, y=5, z=10>\n<x=2, y=-7, z=3>\n<x=9, y=-8, z=-3>",
+        );
+        let mut system = System::new(moons);
+        let common_loop = get_common_loop_step(system.step_until_all_loops_complete());
+
+        assert_eq!(4686774924, common_loop)
     }
 }
