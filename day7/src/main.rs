@@ -30,18 +30,14 @@ fn main() {
     let mut possible_values = vec![0, 1, 2, 3, 4];
     let permutations = Heap::new(&mut possible_values);
 
-    let max = permutations
-        .map(|p| amplifier.amplify(&p))
-        .max();
+    let max = permutations.map(|p| amplifier.amplify(&p)).max();
     println!("Highest possible thrust input is: {:?}", max);
 
     // Part 2
     let mut possible_values = vec![5, 6, 7, 8, 9];
     let permutations = Heap::new(&mut possible_values);
 
-    let max = permutations
-        .map(|p| amplifier.amplify_pipe(&p))
-        .max();
+    let max = permutations.map(|p| amplifier.amplify_pipe(&p)).max();
     println!("Highest possible thrust input is: {:?}", max)
 }
 

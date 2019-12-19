@@ -180,9 +180,7 @@ impl Program {
         let dest_addr = match mode {
             ParameterMode::Position => addr,
             ParameterMode::Immediate => panic!("Day 5 states this will never happen"),
-            ParameterMode::Relative => {
-                (self.relative_base as Value + addr as Value) as usize
-            }
+            ParameterMode::Relative => (self.relative_base as Value + addr as Value) as usize,
         };
 
         self.memory.insert(dest_addr, value);

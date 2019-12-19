@@ -1,6 +1,6 @@
 use std::collections::{HashMap, VecDeque};
-use std::hash::Hash;
 use std::f64::consts::PI;
+use std::hash::Hash;
 
 fn main() {
     let input = "#...##.####.#.......#.##..##.#.
@@ -41,7 +41,11 @@ fn main() {
 
     let vaporization_order = map.get_vaporization_order(best.0);
     let twohundredth = vaporization_order[199];
-    println!("Point: {:?}, Solution: {}",  twohundredth, twohundredth.position.x*100+twohundredth.position.y);
+    println!(
+        "Point: {:?}, Solution: {}",
+        twohundredth,
+        twohundredth.position.x * 100 + twohundredth.position.y
+    );
 }
 
 struct Map {
@@ -63,7 +67,7 @@ impl Position {
         // Change orientation, such that angle is relative to positive y axis
         // Pi/2 needs to be SUBTRACTED to rotate the starting point 0 counterclockwise
         // onto the y axis
-        let mut angle = absolute_y.atan2(absolute_x) - (PI/2.0);
+        let mut angle = absolute_y.atan2(absolute_x) - (PI / 2.0);
         // Adding a whole rotation to negative angles, such that 0 is the starting point
         if angle < 0.0 {
             angle += std::f64::consts::PI * 2.0;
@@ -162,12 +166,12 @@ impl Map {
         }
 
         let mut global_positions = Vec::new();
-        let mut keys:Vec<_> = angles_order.keys().cloned().collect();
+        let mut keys: Vec<_> = angles_order.keys().cloned().collect();
         keys.sort();
 
         loop {
             let mut empty = true;
-            for angle in &keys{
+            for angle in &keys {
                 let positions = angles_order.get_mut(angle).unwrap();
 
                 if !positions.is_empty() {
@@ -176,7 +180,7 @@ impl Map {
                 }
             }
             if empty {
-                break
+                break;
             }
         }
         global_positions
@@ -352,19 +356,18 @@ mod tests {
 
     #[test]
     fn test_get_asteroids() {
-            let input = "##
+        let input = "##
 .#";
-            let map = Map::new(input);
-            let asteroids = map.get_asteroids();
+        let map = Map::new(input);
+        let asteroids = map.get_asteroids();
 
-            let expected = vec![
-                Position { x: 0, y: 0 },
-                Position { x: 1, y: 0 },
-                Position { x: 1, y: 1 },
-            ];
+        let expected = vec![
+            Position { x: 0, y: 0 },
+            Position { x: 1, y: 0 },
+            Position { x: 1, y: 1 },
+        ];
 
-            assert_eq!(expected, asteroids);
-
+        assert_eq!(expected, asteroids);
     }
 
     #[test]
